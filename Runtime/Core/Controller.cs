@@ -1,5 +1,7 @@
 ﻿#define PROTECTED_INSTANCE
 
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Atuvu.Lifecycle
@@ -9,6 +11,8 @@ namespace Atuvu.Lifecycle
         bool enabled { get; }
         string controllerName { get; }
 
+        void AddSceneObject(SceneObject obj);
+        void RemoveSceneObject(SceneObject obj);
         void SetInstance(GameObject instance);
 
         void DoControllerStarted();
@@ -29,7 +33,9 @@ namespace Atuvu.Lifecycle
         where T : Controller<T>
     {
         static T s_Instance;
+
         string m_ControllerName = null;
+        List<SceneObject> m_BoundObjects = new List<SceneObject>(32);
 
         void IController.SetInstance(GameObject instance)
         {
@@ -49,6 +55,16 @@ namespace Atuvu.Lifecycle
             Debug.LogAssertion($"Failed to find controller component of type {GetType()} on object {instance.name}.");
         }
 
+        void IController.AddSceneObject(SceneObject obj)
+        {
+            m_BoundObjects.Add(obj);
+        }
+
+        void IController.RemoveSceneObject(SceneObject obj)
+        {
+            m_BoundObjects.Remove(obj);
+        }
+
         string IController.controllerName
         {
             get
@@ -62,13 +78,41 @@ namespace Atuvu.Lifecycle
 
         void IController.DoControllerStarted() { OnControllerStarted(); }
         void IController.DoControllerStopped() { OnControllerStopped(); }
-        void IController.DoRegisterCallbacks() { RegisterCallbacks(); }
-        void IController.DoUnregisterCallbacks() { UnregisterCallbacks(); }
-        void IController.DoPreUpdate(float deltaTime) { OnPreUpdate(deltaTime);}
-        void IController.DoUpdate(float deltaTime) { OnUpdate(deltaTime); }
-        void IController.DoPostUpdate(float deltaTime) { OnPostUpdate(deltaTime); }
-        void IController.DoEndOfFrame(float deltaTime) { OnEndOfFrame(deltaTime); }
-        void IController.DoFixedUpdate() { OnFixedUpdate(); }
+
+        void IController.DoRegisterCallbacks()
+        {
+            RegisterCallbacks();
+        }
+
+        void IController.DoUnregisterCallbacks()
+        {
+            UnregisterCallbacks();
+        }
+
+        void IController.DoPreUpdate(float deltaTime)
+        {
+            OnPreUpdate(deltaTime);
+        }
+
+        void IController.DoUpdate(float deltaTime)
+        {
+            OnUpdate(deltaTime);
+        }
+
+        void IController.DoPostUpdate(float deltaTime)
+        {
+            OnPostUpdate(deltaTime);
+        }
+
+        void IController.DoEndOfFrame(float deltaTime)
+        {
+            OnEndOfFrame(deltaTime);
+        }
+
+        void IController.DoFixedUpdate()
+        {
+            OnFixedUpdate();
+        }
         
         protected virtual void OnControllerStarted() { }
         protected virtual void OnControllerStopped() { }

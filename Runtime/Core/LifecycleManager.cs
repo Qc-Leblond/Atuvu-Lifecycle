@@ -22,8 +22,8 @@ namespace Atuvu.Lifecycle
 
         static LifecycleManager s_Instance;
 
-        ControllerBatch[] m_ControllerBatches;
-        Dictionary<Type, IController> m_Controllers;
+        ControllerBatch[] m_ControllerBatches = new ControllerBatch[0];
+        Dictionary<Type, IController> m_Controllers = new Dictionary<Type, IController>(0);
 
         static float deltaTime => Time.deltaTime;
 
@@ -104,8 +104,6 @@ namespace Atuvu.Lifecycle
 
         #region LIFECYCLE
 
-
-
         void Update()
         {
             OperateOnAllController("[Controllers] Pre Update", k_PreUpdate);
@@ -127,6 +125,25 @@ namespace Atuvu.Lifecycle
             }
         }
 
+        #endregion
+
+        #region API
+
+        internal static void RegisterSceneObject(SceneObject sceneObject)
+        {
+            if (s_Instance.m_Controllers.TryGetValue(sceneObject.GetControllerOwner(), out IController controller))
+            {
+                controller.AddSceneObject(sceneObject);
+            }
+        }
+
+        internal static void UnregisterSceneObject(SceneObject sceneObject)
+        {
+            if (s_Instance.m_Controllers.TryGetValue(sceneObject.GetControllerOwner(), out IController controller))
+            {
+                controller.RemoveSceneObject(sceneObject);
+            }
+        }
         #endregion
 
         #region UTILITY

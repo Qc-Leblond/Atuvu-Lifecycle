@@ -12,10 +12,12 @@ namespace Atuvu.Lifecycle
 
         void OnEnableINTERNAL()
         {
+            LifecycleManager.RegisterSceneObject(this);
         }
 
         void OnDisableINTERNAL()
         {
+            LifecycleManager.UnregisterSceneObject(this);
         }
     }
 
