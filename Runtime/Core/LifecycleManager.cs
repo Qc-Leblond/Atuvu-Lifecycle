@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 namespace Atuvu.Lifecycle
 {
@@ -23,6 +23,7 @@ namespace Atuvu.Lifecycle
         static LifecycleManager s_Instance;
 
         ControllerBatch[] m_ControllerBatches;
+        Dictionary<Type, IController> m_Controllers;
 
         static float deltaTime => Time.deltaTime;
 
@@ -41,7 +42,7 @@ namespace Atuvu.Lifecycle
         {
             m_ControllerBatches = LoadAllControllerBatch();
             InitBatches();
-
+            
             StartCoroutine(EndOfFrame());
         }
 
@@ -50,6 +51,7 @@ namespace Atuvu.Lifecycle
             var groups = Resources.LoadAll<ControllerGroup>("");
             List<ControllerBatch> batches = new List<ControllerBatch>(groups.Length);
             List<IController> controllers = new List<IController>();
+            m_Controllers.Clear();
 
             foreach (var controllerGroup in groups)
             {
@@ -66,6 +68,7 @@ namespace Atuvu.Lifecycle
                         {
                             c.SetInstance(controller);
                             controllers.Add(c);
+                            m_Controllers.Add(c.GetType(), c);
                         }
                     }
                 }
@@ -79,8 +82,8 @@ namespace Atuvu.Lifecycle
 
         void InitBatches()
         {
-            OperateOnAllController("[Controller] Start Controller", k_ControllerStarted);
-            OperateOnAllController("[Controller] Register Callbacks", k_RegisterCallbacks);
+            OperateOnAllController("[Controllers] Start Controller", k_ControllerStarted);
+            OperateOnAllController("[Controllers] Register Callbacks", k_RegisterCallbacks);
         }
 
         void OnDestroy()
@@ -94,8 +97,8 @@ namespace Atuvu.Lifecycle
 
         void DisposeOfBatches()
         {
-            OperateOnAllController("[Controller] Unregister Callbacks", k_UnregisterCallbacks);
-            OperateOnAllController("[Controller] Stop Controller", k_ControllerStopped);
+            OperateOnAllController("[Controllers] Unregister Callbacks", k_UnregisterCallbacks);
+            OperateOnAllController("[Controllers] Stop Controller", k_ControllerStopped);
         }
         #endregion
 
@@ -105,14 +108,14 @@ namespace Atuvu.Lifecycle
 
         void Update()
         {
-            OperateOnAllController("[Controller] Pre Update", k_PreUpdate);
-            OperateOnAllController("[Controller] - Update", k_Update);
-            OperateOnAllController("[Controller] - Post Update", k_PostUpdate);
+            OperateOnAllController("[Controllers] Pre Update", k_PreUpdate);
+            OperateOnAllController("[Controllers] Update", k_Update);
+            OperateOnAllController("[Controllers] Post Update", k_PostUpdate);
         }
 
         void FixedUpdate()
         {
-            OperateOnAllController("[Controller] - Fixed Update", k_FixedUpdate);
+            OperateOnAllController("[Controllers] Fixed Update", k_FixedUpdate);
         }
 
         IEnumerator EndOfFrame()
@@ -120,7 +123,7 @@ namespace Atuvu.Lifecycle
             while (true)
             {
                 yield return k_EndOfFrameYield;
-                OperateOnAllController("[Controller] - End Of Frame", k_EndOfFrame);
+                OperateOnAllController("[Controllers] End Of Frame", k_EndOfFrame);
             }
         }
 
@@ -130,22 +133,25 @@ namespace Atuvu.Lifecycle
 
         void OperateOnAllController(string operationName, Action<IController> operation)
         {
-            Profiler.BeginSample(operationName);
-            foreach (var batch in m_ControllerBatches)
+            using (new ProfilerMarker(operationName).Auto())
             {
-                Profiler.BeginSample("Group: " + batch.name);
-                foreach (var controller in batch.controllers)
+                foreach (var batch in m_ControllerBatches)
                 {
-                    if (controller == null || !controller.enabled)
-                        continue;
+                    using (new ProfilerMarker(batch.name).Auto())
+                    {
+                        foreach (var controller in batch.controllers)
+                        {
+                            if (controller == null || !controller.enabled)
+                                continue;
 
-                    Profiler.BeginSample(controller.controllerName);
-                    operation.Invoke(controller);
-                    Profiler.EndSample();
+                            using (new ProfilerMarker(controller.controllerName).Auto())
+                            {
+                                operation.Invoke(controller);
+                            }
+                        }
+                    }
                 }
-                Profiler.EndSample();
             }
-            Profiler.EndSample();
         }
         #endregion
     }
