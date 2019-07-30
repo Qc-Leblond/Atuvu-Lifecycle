@@ -1,0 +1,8 @@
+{
+    "name": "com.atuvu.lifecycle",
+    "displayName": "[Atuvu] Lifecycle",
+    "version": "0.0.1",
+    "unity": "2019.1",
+    "description": "Lifecycle module of the Atuvu Extension",
+    "keywords": [ "Lifecycle" ]
+}
